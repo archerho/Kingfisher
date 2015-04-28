@@ -36,6 +36,13 @@ private let downloaderBarrierName = "com.onevcat.Kingfisher.ImageDownloader.Barr
 private let imageProcessQueueName = "com.onevcat.Kingfisher.ImageDownloader.Process."
 private let instance = ImageDownloader(name: defaultDownloaderName)
 
+/**
+*	Protocol of `ImageDownloader`.
+*/
+@objc public protocol ImageDownloaderDelegate {
+    optional func imageDownloader(downloader: ImageDownloader, didDownloadImage image: UIImage, forURL URL: NSURL, withResponse response: NSURLResponse)
+}
+
 public class ImageDownloader: NSObject {
     
     class ImageFetchLoad {
@@ -54,6 +61,8 @@ public class ImageDownloader: NSObject {
     
     /// A set of trusted hosts when receiving server trust challenges. A challenge with host name contained in this set will be ignored. You can use this set to specify the self-signed site.
     public var trustedHosts: Set<String>?
+    
+    public weak var delegate: ImageDownloaderDelegate?
     
     // MARK: - Internal property
     let barrierQueue: dispatch_queue_t
@@ -228,6 +237,9 @@ extension ImageDownloader: NSURLSessionDataDelegate {
                     
                     if let fetchLoad = self.fetchLoads[URL] {
                         if let image = UIImage(data: fetchLoad.responseData) {
+                            
+                            self.delegate?.imageDownloader?(self, didDownloadImage: image, forURL: URL, withResponse: task.response!)
+                            
                             if fetchLoad.shouldDecode {
                                 self.callbackWithImage(image.kf_decodedImage(), error: nil, imageURL: URL)
                             } else {
